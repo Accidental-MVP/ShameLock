@@ -1,7 +1,7 @@
 import { logFailure } from "./github.js";
 
 document.getElementById("auth").addEventListener("click", () => {
-  const authWindow = window.open("https://shamelock-server-amapg9cyb-udays-projects-f250ded9.vercel.app/auth/github");
+  const authWindow = window.open("https://shamelock-server.vercel.app/auth/github", "_blank", "width=500,height=600");
 
 
 
