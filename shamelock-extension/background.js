@@ -1,28 +1,243 @@
-import { logFailure } from "./github.js";
-
-let focusEndTime = null;
 const blockedSites = ["youtube.com", "twitter.com", "reddit.com"];
 
-chrome.runtime.onMessage.addListener((request) => {
-  if (request.action === "startFocus") {
-    const now = Date.now();
-    focusEndTime = now + request.duration * 60 * 1000;
-    chrome.storage.local.set({ focusEndTime });
+let timerInterval;
+let lastShameTime = 0;
+const SHAME_DEBOUNCE = 5000; // 5 seconds between shame logs
+
+// Function to log failure to GitHub
+async function logFailure(site, time) {
+  const { githubToken, githubUsername } = await chrome.storage.local.get(["githubToken", "githubUsername"]);
+  let GITHUB_USERNAME = githubUsername;
+  const TOKEN = githubToken;
+  const REPO_NAME = "shame-log";
+  const FILE_PATH = "FAIL_LOG.md";
+  const date = new Date().toISOString().split("T")[0];
+  const newEntry = `- ${date} – Visited ${site} at ${time}\n`;
+  const issueTitle = `Failed to focus: ${site} at ${time}`;
+  const issueBody = `Visited ${site} during focus session at ${time}.\nShame.`;
+
+  // If username isn't cached, fetch it now
+  if (!GITHUB_USERNAME) {
+    const userRes = await fetch("https://api.github.com/user", {
+      headers: {
+        Authorization: `token ${TOKEN}`,
+        Accept: "application/vnd.github.v3+json"
+      }
+    });
+
+    const userData = await userRes.json();
+    GITHUB_USERNAME = userData.login;
+    chrome.storage.local.set({ githubUsername: GITHUB_USERNAME });
+  }
+
+  // Step 1: Create a GitHub issue
+  await fetch(`https://api.github.com/repos/${GITHUB_USERNAME}/${REPO_NAME}/issues`, {
+    method: "POST",
+    headers: {
+      Authorization: `token ${TOKEN}`,
+      Accept: "application/vnd.github.v3+json"
+    },
+    body: JSON.stringify({
+      title: issueTitle,
+      body: issueBody
+    })
+  });
+
+  // Step 2: Fetch FAIL_LOG.md or prepare to create it
+  const fileRes = await fetch(`https://api.github.com/repos/${GITHUB_USERNAME}/${REPO_NAME}/contents/${FILE_PATH}`, {
+    headers: {
+      Authorization: `token ${TOKEN}`,
+      Accept: "application/vnd.github.v3+json"
+    }
+  });
+
+  let content = "# FAIL LOG\n\n";
+  let sha = null;
+
+  if (fileRes.status === 200) {
+    const fileData = await fileRes.json();
+    try {
+      content = atob(fileData.content);
+      sha = fileData.sha;
+    } catch (err) {
+      console.error("Failed to decode existing FAIL_LOG.md:", err);
+      return;
+    }
+  } else if (fileRes.status !== 404) {
+    console.error("GitHub file fetch failed:", await fileRes.text());
+    return;
+  }
+
+  const updatedContent = btoa(unescape(encodeURIComponent(content + newEntry)));
+
+  await fetch(`https://api.github.com/repos/${GITHUB_USERNAME}/${REPO_NAME}/contents/${FILE_PATH}`, {
+    method: "PUT",
+    headers: {
+      Authorization: `token ${TOKEN}`,
+      Accept: "application/vnd.github.v3+json"
+    },
+    body: JSON.stringify({
+      message: `log: failed focus on ${site}`,
+      content: updatedContent,
+      sha
+    })
+  });
+
+  // Notify popup about shame (if it's open)
+  try {
+    chrome.runtime.sendMessage({
+      action: "shameLogged",
+      site: site,
+      time: time
+    }, () => {
+      if (chrome.runtime.lastError) {
+        // Popup is closed, that's okay
+      }
+    });
+  } catch (e) {
+    // Popup is closed, that's okay
+  }
+}
+
+// Message handling
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.action === "startFocus") {
+    const minutes = message.duration;
+    const totalDuration = minutes * 60;
+    const endTime = Date.now() + (totalDuration * 1000);
+    
+    // Store timer state
+    chrome.storage.local.set({
+      focusEndTime: endTime,
+      totalDuration: totalDuration
+    });
+    
+    // Clear any existing timer
+    if (timerInterval) {
+      clearInterval(timerInterval);
+    }
+    
+    // Start new timer
+    timerInterval = setInterval(async () => {
+      const { focusEndTime } = await chrome.storage.local.get("focusEndTime");
+      if (!focusEndTime) {
+        clearInterval(timerInterval);
+        return;
+      }
+
+      const now = Date.now();
+      const timeLeft = Math.max(0, focusEndTime - now);
+      
+      // Update any open popups (if they exist)
+      try {
+        chrome.runtime.sendMessage({
+          action: "timerUpdate",
+          timeLeft: timeLeft
+        }, () => {
+          if (chrome.runtime.lastError) {
+            // Popup is closed, that's okay
+          }
+        });
+      } catch (e) {
+        // Popup is closed, that's okay
+      }
+      
+      if (timeLeft === 0) {
+        clearInterval(timerInterval);
+        chrome.storage.local.remove(["focusEndTime", "totalDuration"]);
+        try {
+          chrome.runtime.sendMessage({ action: "timerEnd" }, () => {
+            if (chrome.runtime.lastError) {
+              // Popup is closed, that's okay
+            }
+          });
+        } catch (e) {
+          // Popup is closed, that's okay
+        }
+      }
+    }, 1000);
+    
+    // Create alarm for checking tabs
+    chrome.alarms.create("shameCheck", { periodInMinutes: 0.2 });
+    
+    // Send initial timer state
+    sendResponse({ success: true });
+  }
+  
+  if (message.action === "stopFocus") {
+    if (timerInterval) {
+      clearInterval(timerInterval);
+      timerInterval = null;
+    }
+    chrome.storage.local.remove(["focusEndTime", "totalDuration"]);
+    chrome.alarms.clear("shameCheck");
+    try {
+      chrome.runtime.sendMessage({ action: "timerEnd" }, () => {
+        if (chrome.runtime.lastError) {
+          // Popup is closed, that's okay
+        }
+      });
+    } catch (e) {
+      // Popup is closed, that's okay
+    }
+    sendResponse({ success: true });
+  }
+  
+  if (message.action === "getTimerState") {
+    chrome.storage.local.get(["focusEndTime", "totalDuration"], (result) => {
+      if (result.focusEndTime) {
+        sendResponse({
+          isRunning: true,
+          timeLeft: Math.max(0, result.focusEndTime - Date.now()),
+          totalDuration: result.totalDuration
+        });
+      } else {
+        sendResponse({ isRunning: false });
+      }
+    });
+    return true; // Keep the message channel open for async response
   }
 });
 
+// Respond to tab updates with debouncing
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  if (!tab.url || !focusEndTime) return;
+  if (!tab.url) return;
+  const now = Date.now();
+  if (now - lastShameTime < SHAME_DEBOUNCE) return;
+  checkTab(tab.url);
+});
 
-  chrome.storage.local.get("focusEndTime", async ({ focusEndTime }) => {
-    if (Date.now() < focusEndTime) {
-      for (const site of blockedSites) {
-        if (tab.url.includes(site)) {
-          const failTime = new Date().toLocaleTimeString();
-          const siteName = site.split(".")[0];
-          await logFailure(siteName, failTime);
-        }
+// Respond to alarms (runs in background even after popup dies)
+chrome.alarms.onAlarm.addListener(async (alarm) => {
+  if (alarm.name === "shameCheck") {
+    const tabs = await chrome.tabs.query({});
+    for (const tab of tabs) {
+      if (tab.url) {
+        checkTab(tab.url);
       }
     }
-  });
+  }
 });
+
+// Check a URL and log failure if it's bad
+async function checkTab(url) {
+  const { focusEndTime } = await chrome.storage.local.get("focusEndTime");
+  if (!focusEndTime || Date.now() > focusEndTime) return;
+
+  for (const site of blockedSites) {
+    if (url.includes(site)) {
+      const now = Date.now();
+      if (now - lastShameTime < SHAME_DEBOUNCE) return;
+      lastShameTime = now;
+
+      const failTime = new Date().toLocaleTimeString();
+      const siteName = site.split(".")[0];
+      await logFailure(siteName, failTime);
+
+      // Stop future logs for this session
+      chrome.storage.local.remove(["focusEndTime", "totalDuration"]);
+      chrome.alarms.clear("shameCheck");
+      break;
+    }
+  }
+}
