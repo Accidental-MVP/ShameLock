@@ -1,12 +1,13 @@
-// SET THESE
-const GITHUB_USERNAME = "your-username";
-const REPO_NAME = "shame-log";
-const TOKEN = "ghp_yourtokenhere"; // personal access token
+export async function logFailure(site, time) {
+  const TOKEN = await new Promise((resolve) => {
+    chrome.storage.local.get("githubToken", (result) => resolve(result.githubToken));
+  });
 
-async function logFailure(site, time) {
+  const GITHUB_USERNAME = "your-username"; // Replace with your GitHub username
+  const REPO_NAME = "shame-log";
   const date = new Date().toISOString().split('T')[0];
   const issueTitle = `Failed to focus: ${site} at ${time}`;
-  const issueBody = `Visited ${site} during focus session at ${time}.\nShame.`
+  const issueBody = `Visited ${site} during focus session at ${time}.\nShame.`;
 
   // Create GitHub Issue
   await fetch(`https://api.github.com/repos/${GITHUB_USERNAME}/${REPO_NAME}/issues`, {
@@ -15,13 +16,10 @@ async function logFailure(site, time) {
       Authorization: `token ${TOKEN}`,
       Accept: "application/vnd.github.v3+json"
     },
-    body: JSON.stringify({
-      title: issueTitle,
-      body: issueBody
-    })
+    body: JSON.stringify({ title: issueTitle, body: issueBody })
   });
 
-  // Append to FAIL_LOG.md
+  // Update FAIL_LOG.md
   const path = "FAIL_LOG.md";
   const fileRes = await fetch(`https://api.github.com/repos/${GITHUB_USERNAME}/${REPO_NAME}/contents/${path}`, {
     headers: {
@@ -29,10 +27,10 @@ async function logFailure(site, time) {
       Accept: "application/vnd.github.v3+json"
     }
   });
+
   const fileData = await fileRes.json();
   const content = atob(fileData.content);
   const sha = fileData.sha;
-
   const newEntry = `- ${date} – Visited ${site} at ${time}\n`;
   const updatedContent = btoa(content + newEntry);
 

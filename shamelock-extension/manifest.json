@@ -4,16 +4,12 @@
   "version": "1.0",
   "description": "Block distracting sites and log your failures to GitHub. Publicly.",
   "permissions": ["storage", "tabs", "scripting"],
+  "host_permissions": ["<all_urls>"],
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "background.js",
+    "type": "module"
   },
   "action": {
-    "default_popup": "popup.html",
-    "default_icon": {
-      "16": "icons/icon16.png",
-      "48": "icons/icon48.png",
-      "128": "icons/icon128.png"
-    }
-  },
-  "host_permissions": ["<all_urls>"]
+    "default_popup": "popup.html"
+  }
 }

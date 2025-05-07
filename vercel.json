@@ -1,0 +1,8 @@
+{
+  "projects": [
+    {
+      "src": "shamelock-server/index.js",
+      "use": "@vercel/node"
+    }
+  ]
+}
