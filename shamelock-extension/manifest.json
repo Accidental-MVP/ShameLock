@@ -2,15 +2,20 @@
   "manifest_version": 3,
   "name": "ShameLock",
   "version": "1.0",
-  "description": "A focus timer that shames you on GitHub when you visit distracting sites",
+  "description": "Stay focused, or face the shame. A productivity extension that logs your distractions to GitHub.",
   "permissions": [
     "storage",
     "tabs",
-    "alarms"
+    "alarms",
+    "scripting",
+    "notifications"
   ],
   "host_permissions": [
     "https://api.github.com/*",
-    "https://shamelock-server.vercel.app/*"
+    "https://shamelock-server.vercel.app/*",
+    "https://*.youtube.com/*",
+    "https://*.twitter.com/*",
+    "https://*.reddit.com/*"
   ],
   "action": {
     "default_popup": "popup.html"

@@ -254,17 +254,62 @@ async function checkTab(url) {
 
   for (const site of blockedSites) {
     if (url.includes(site)) {
-      const now = Date.now();
-      if (now - lastShameTime < SHAME_DEBOUNCE) return;
-      lastShameTime = now;
-
       const failTime = new Date().toLocaleTimeString();
       const siteName = site.split(".")[0];
+
+      // Inject full-screen shame message only into blocked sites
+      const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (tabs.length > 0) {
+        const tab = tabs[0];
+        // Only inject if we're on a blocked site
+        if (tab.url && tab.url.includes(site)) {
+          try {
+            await chrome.scripting.executeScript({
+              target: { tabId: tab.id },
+              func: () => {
+                document.body.innerHTML = `
+                  <div style="
+                    font-family: sans-serif;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    height: 100vh;
+                    font-size: 24px;
+                    color: red;
+                    background: black;
+                    text-align: center;
+                  ">
+                    <h1>🚨 STOP WASTING TIME 🚨</h1>
+                    <p>This site is blocked during your focus session.</p>
+                  </div>
+                `;
+
+                const audio = new Audio("https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg");
+                audio.play().catch(() => {}); // just in case
+              }
+            });
+          } catch (e) {
+            // Ignore injection errors (e.g., if we can't inject into the page)
+            console.log("Could not inject shame message:", e);
+          }
+        }
+      }
+
+      // Pop browser notification
+      chrome.notifications.create({
+        type: "basic",
+        title: "👿 Shame Detected",
+        message: `You opened ${siteName}. Logging this disaster.`,
+        priority: 2
+      });
+
+      // Log to GitHub
       await logFailure(siteName, failTime);
 
-      // Stop future logs for this session
-      chrome.storage.local.remove(["focusEndTime", "totalDuration"]);
-      chrome.alarms.clear("shameCheck");
+      // Optional: keep logging multiple times, or uncomment below to stop session
+      // chrome.storage.local.remove("focusEndTime");
+      // chrome.alarms.clear("shameCheck");
       break;
     }
   }
