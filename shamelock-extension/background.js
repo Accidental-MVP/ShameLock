@@ -10,9 +10,9 @@ async function logFailure(site, time) {
   let GITHUB_USERNAME = githubUsername;
   const TOKEN = githubToken;
   const REPO_NAME = "shame-log";
-  const FILE_PATH = "FAIL_LOG.md";
   const date = new Date().toISOString().split("T")[0];
-  const newEntry = `- ${date} – Visited ${site} at ${time}\n`;
+  const FILE_PATH = `failed_logs/FAIL_${date}.md`;
+  const newEntry = `- ${time} – Visited ${site}\n`;
   const issueTitle = `Failed to focus: ${site} at ${time}`;
   const issueBody = `Visited ${site} during focus session at ${time}.\nShame.`;
 
@@ -53,6 +53,19 @@ async function logFailure(site, time) {
         auto_init: true // Initialize with a README
       })
     });
+
+    // Create failed_logs directory with .gitkeep
+    await fetch(`https://api.github.com/repos/${GITHUB_USERNAME}/${REPO_NAME}/contents/failed_logs/.gitkeep`, {
+      method: "PUT",
+      headers: {
+        Authorization: `token ${TOKEN}`,
+        Accept: "application/vnd.github.v3+json"
+      },
+      body: JSON.stringify({
+        message: "chore: initialize failed_logs directory",
+        content: btoa("Directory for daily shame logs")
+      })
+    });
   } else if (repoRes.status !== 200) {
     console.error("Failed to check/create repo:", await repoRes.text());
     return;
@@ -71,7 +84,7 @@ async function logFailure(site, time) {
     })
   });
 
-  // Step 2: Fetch FAIL_LOG.md or prepare to create it
+  // Step 2: Fetch existing log file or prepare to create it
   const fileRes = await fetch(`https://api.github.com/repos/${GITHUB_USERNAME}/${REPO_NAME}/contents/${FILE_PATH}`, {
     headers: {
       Authorization: `token ${TOKEN}`,
@@ -79,7 +92,7 @@ async function logFailure(site, time) {
     }
   });
 
-  let content = "# FAIL LOG\n\n";
+  let content = `# FAIL LOG – ${date}\n\n`;
   let sha = null;
 
   if (fileRes.status === 200) {
@@ -88,7 +101,7 @@ async function logFailure(site, time) {
       content = atob(fileData.content);
       sha = fileData.sha;
     } catch (err) {
-      console.error("Failed to decode existing FAIL_LOG.md:", err);
+      console.error("Failed to decode existing log file:", err);
       return;
     }
   } else if (fileRes.status !== 404) {
