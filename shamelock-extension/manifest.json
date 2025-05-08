@@ -8,7 +8,8 @@
     "tabs",
     "alarms",
     "scripting",
-    "notifications"
+    "notifications",
+    "webNavigation"
   ],
   "host_permissions": [
     "https://api.github.com/*",

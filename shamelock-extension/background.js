@@ -227,76 +227,62 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 });
 
-// Respond to tab updates with debouncing
-chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  if (!tab.url) return;
-  const now = Date.now();
-  if (now - lastShameTime < SHAME_DEBOUNCE) return;
-  checkTab(tab.url);
-});
-
-// Respond to alarms (runs in background even after popup dies)
-chrome.alarms.onAlarm.addListener(async (alarm) => {
-  if (alarm.name === "shameCheck") {
-    const tabs = await chrome.tabs.query({});
-    for (const tab of tabs) {
-      if (tab.url) {
-        checkTab(tab.url);
-      }
-    }
-  }
-});
-
 // Check a URL and log failure if it's bad
-async function checkTab(url) {
-  const { focusEndTime } = await chrome.storage.local.get("focusEndTime");
+async function checkTab(url, tabId) {
+  const { focusEndTime, lastShamePerTab = {} } = await chrome.storage.local.get([
+    "focusEndTime",
+    "lastShamePerTab"
+  ]);
   if (!focusEndTime || Date.now() > focusEndTime) return;
 
   for (const site of blockedSites) {
     if (url.includes(site)) {
+      const now = Date.now();
+      const last = lastShamePerTab[tabId] || 0;
+
+      const COOLDOWN = 5000; // 5 seconds per tab
+      if (now - last < COOLDOWN) return; // already shamed recently
+
+      // Save this tab's shame time
+      lastShamePerTab[tabId] = now;
+      await chrome.storage.local.set({ lastShamePerTab });
+
       const failTime = new Date().toLocaleTimeString();
       const siteName = site.split(".")[0];
 
-      // Inject full-screen shame message only into blocked sites
-      const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-      if (tabs.length > 0) {
-        const tab = tabs[0];
-        // Only inject if we're on a blocked site
-        if (tab.url && tab.url.includes(site)) {
-          try {
-            await chrome.scripting.executeScript({
-              target: { tabId: tab.id },
-              func: () => {
-                document.body.innerHTML = `
-                  <div style="
-                    font-family: sans-serif;
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    justify-content: center;
-                    height: 100vh;
-                    font-size: 24px;
-                    color: red;
-                    background: black;
-                    text-align: center;
-                  ">
-                    <h1>🚨 STOP WASTING TIME 🚨</h1>
-                    <p>This site is blocked during your focus session.</p>
-                  </div>
-                `;
+      // Continue with full shame protocol
+      await logFailure(siteName, failTime);
 
-                const audio = new Audio("https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg");
-                audio.play().catch(() => {}); // just in case
-              }
-            });
-          } catch (e) {
-            // Ignore injection errors (e.g., if we can't inject into the page)
-            console.log("Could not inject shame message:", e);
+      // Inject shame message
+      try {
+        await chrome.scripting.executeScript({
+          target: { tabId },
+          func: () => {
+            document.body.innerHTML = `
+              <div style="
+                font-family: sans-serif;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                height: 100vh;
+                font-size: 24px;
+                color: red;
+                background: black;
+                text-align: center;
+              ">
+                <h1>🚨 STOP WASTING TIME 🚨</h1>
+                <p>This site is blocked during your focus session.</p>
+              </div>
+            `;
+            new Audio("https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg").play();
           }
-        }
+        });
+      } catch (e) {
+        console.log("Could not inject shame:", e);
       }
 
-      // Pop browser notification with skull lock icon
+      // Notification
       chrome.notifications.create({
         type: "basic",
         iconUrl: chrome.runtime.getURL("icons/skull_lock_128.png"),
@@ -305,13 +291,64 @@ async function checkTab(url) {
         priority: 2
       });
 
-      // Log to GitHub
-      await logFailure(siteName, failTime);
-
-      // Optional: keep logging multiple times, or uncomment below to stop session
-      // chrome.storage.local.remove("focusEndTime");
-      // chrome.alarms.clear("shameCheck");
       break;
     }
   }
 }
+
+// Listen for completed page loads
+chrome.webNavigation.onCompleted.addListener(({ tabId }) => {
+  chrome.tabs.get(tabId, (tab) => {
+    if (tab && tab.url) {
+      checkTab(tab.url, tabId);
+    }
+  });
+});
+
+// Respond to alarms (runs in background even after popup dies)
+chrome.alarms.onAlarm.addListener(async (alarm) => {
+  if (alarm.name === "shameCheck") {
+    const tabs = await chrome.tabs.query({});
+    for (const tab of tabs) {
+      if (tab.url) {
+        // Just check and block, don't log
+        const { focusEndTime } = await chrome.storage.local.get("focusEndTime");
+        if (!focusEndTime || Date.now() > focusEndTime) continue;
+
+        for (const site of blockedSites) {
+          if (tab.url.includes(site)) {
+            // Inject full-screen shame message
+            try {
+              await chrome.scripting.executeScript({
+                target: { tabId: tab.id },
+                func: () => {
+                  document.body.innerHTML = `
+                    <div style="
+                      font-family: sans-serif;
+                      display: flex;
+                      flex-direction: column;
+                      align-items: center;
+                      justify-content: center;
+                      height: 100vh;
+                      font-size: 24px;
+                      color: red;
+                      background: black;
+                      text-align: center;
+                    ">
+                      <h1>🚨 STOP WASTING TIME 🚨</h1>
+                      <p>This site is blocked during your focus session.</p>
+                    </div>
+                  `;
+                }
+              });
+            } catch (e) {
+              // Ignore injection errors
+              console.log("Could not inject shame message:", e);
+            }
+            break;
+          }
+        }
+      }
+    }
+  }
+});
