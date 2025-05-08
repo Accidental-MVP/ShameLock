@@ -3,3 +3,5 @@ shamelock-server/.env
 
 # Ignore node_modules
 shamelock-server/node_modules
+
+shamelock-extension/config.js

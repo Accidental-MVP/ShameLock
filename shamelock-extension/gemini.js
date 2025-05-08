@@ -22,10 +22,14 @@ export async function generateShameRoast(site, time) {
       return "No Gemini API key found. Please add your API key in the extension settings.";
     }
 
-    const prompt = `You are a sarcastic, emotionally exhausted productivity coach. You're disappointed, not angry. Write a short roast about someone who opened ${site} at ${time} during a focus session. Be dry, clever, and slightly mean—but not cruel. Format as a 2–3 sentence monologue.
-
-Example Prompt: 
-The user was supposed to be focusing. Instead, they opened YouTube at 3:44 PM. Please write a sarcastic, judgmental comment in the voice of a tired AI coach who's seen it all. 2–3 sentences. Mildly poetic. Assume they've failed before. Do not be supportive. This is not a growth moment.`;
+    const prompt = `You are a brutally sarcastic AI trained to roast people who can't focus. 
+The user opened ${site} at ${time} during a focus session.
+Include this info in the insult. 
+Your job is to insult them in a short, clever one-liner. 
+The insult should be funny, savage, and hyperbolic. 
+Think like a comedian who's also their disappointed mentor. 
+No kindness. No sympathy. Just roast. 
+Format: a single, punchy one-liner.`;
 
     console.log("Making API request to Gemini...");
     const response = await fetch(
