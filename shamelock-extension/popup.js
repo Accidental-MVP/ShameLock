@@ -1,5 +1,3 @@
-import { logFailure } from "./github.js";
-
 // Update UI elements
 const statusEl = document.getElementById("status");
 const timerEl = document.getElementById("timer");
@@ -188,5 +186,101 @@ chrome.runtime.onMessage.addListener((message) => {
     showToast('Focus session completed! 🎉', 'success');
   } else if (message.action === "shameLogged") {
     showToast(`Shame logged: ${message.site} at ${message.time}`, 'error');
+  }
+});
+
+// Load saved API key
+chrome.storage.local.get("geminiApiKey", (result) => {
+  console.log("Loading saved API key:", result);
+  // Only set the input value if we have a non-empty key
+  if (result.geminiApiKey && result.geminiApiKey.trim().length > 0) {
+    document.getElementById("apiKey").value = result.geminiApiKey;
+    console.log("API key loaded into input field");
+  } else {
+    console.log("No API key found in storage, using default key");
+    // Clear any existing empty key
+    chrome.storage.local.remove("geminiApiKey");
+  }
+});
+
+// Save API key
+document.getElementById("saveApiKey").addEventListener("click", () => {
+  const apiKey = document.getElementById("apiKey").value.trim();
+  console.log("Attempting to save API key:", apiKey ? "Key provided" : "No key");
+  
+  // Don't save if the key is empty or just whitespace
+  if (!apiKey || apiKey.length === 0) {
+    console.log("Empty key detected, removing any saved key");
+    // Remove any existing key if user clears the input
+    chrome.storage.local.remove("geminiApiKey", () => {
+      const button = document.getElementById("saveApiKey");
+      const originalText = button.textContent;
+      button.textContent = "Using default key";
+      button.style.backgroundColor = "#4CAF50";
+      setTimeout(() => {
+        button.textContent = originalText;
+        button.style.backgroundColor = "";
+      }, 2000);
+    });
+    return;
+  }
+
+  // Save the key and verify it was saved
+  chrome.storage.local.set({ geminiApiKey: apiKey }, () => {
+    console.log("API key saved, verifying...");
+    
+    // Verify the key was saved correctly
+    chrome.storage.local.get("geminiApiKey", (result) => {
+      console.log("Verification result:", result);
+      
+      const button = document.getElementById("saveApiKey");
+      const originalText = button.textContent;
+      
+      if (result.geminiApiKey === apiKey) {
+        button.textContent = "Saved!";
+        button.style.backgroundColor = "#4CAF50";
+        showToast("API key saved successfully!", "success");
+      } else {
+        button.textContent = "Save failed!";
+        button.style.backgroundColor = "#ff6b6b";
+        showToast("Failed to save API key!", "error");
+      }
+      
+      setTimeout(() => {
+        button.textContent = originalText;
+        button.style.backgroundColor = "";
+      }, 2000);
+    });
+  });
+});
+
+// Timer functionality
+let timerInterval;
+let endTime;
+
+function updateTimer() {
+  const now = Date.now();
+  const timeLeft = Math.max(0, endTime - now);
+  
+  if (timeLeft === 0) {
+    clearInterval(timerInterval);
+    document.getElementById("timer").textContent = "00:00:00";
+    return;
+  }
+  
+  const hours = Math.floor(timeLeft / (1000 * 60 * 60));
+  const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+  const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
+  
+  document.getElementById("timer").textContent = 
+    `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+}
+
+// Check if timer is already running
+chrome.runtime.sendMessage({ action: "getTimerState" }, (response) => {
+  if (response.isRunning) {
+    endTime = Date.now() + response.timeLeft;
+    timerInterval = setInterval(updateTimer, 1000);
+    updateTimer();
   }
 });

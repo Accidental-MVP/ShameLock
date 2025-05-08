@@ -1,3 +1,5 @@
+import { generateShameRoast } from './gemini.js';
+
 const blockedSites = ["youtube.com", "twitter.com", "reddit.com"];
 
 let timerInterval;
@@ -6,6 +8,8 @@ const SHAME_DEBOUNCE = 5000; // 5 seconds between shame logs
 
 // Function to log failure to GitHub
 async function logFailure(site, time) {
+  console.log("Starting logFailure for", site, "at", time);
+  
   const { githubToken, githubUsername } = await chrome.storage.local.get(["githubToken", "githubUsername"]);
   let GITHUB_USERNAME = githubUsername;
   const TOKEN = githubToken;
@@ -14,7 +18,10 @@ async function logFailure(site, time) {
   const FILE_PATH = `failed_logs/FAIL_${date}.md`;
   const newEntry = `- ${time} – Visited ${site}\n`;
   const issueTitle = `Failed to focus: ${site} at ${time}`;
-  const issueBody = `Visited ${site} during focus session at ${time}.\nShame.`;
+  
+  console.log("Generating roast for issue...");
+  const issueBody = await generateShameRoast(site, time);
+  console.log("Generated roast:", issueBody);
 
   // If username isn't cached, fetch it now
   if (!GITHUB_USERNAME) {
@@ -72,7 +79,8 @@ async function logFailure(site, time) {
   }
 
   // Step 1: Create a GitHub issue
-  await fetch(`https://api.github.com/repos/${GITHUB_USERNAME}/${REPO_NAME}/issues`, {
+  console.log("Creating GitHub issue with roast...");
+  const issueResponse = await fetch(`https://api.github.com/repos/${GITHUB_USERNAME}/${REPO_NAME}/issues`, {
     method: "POST",
     headers: {
       Authorization: `token ${TOKEN}`,
@@ -83,6 +91,14 @@ async function logFailure(site, time) {
       body: issueBody
     })
   });
+
+  if (!issueResponse.ok) {
+    console.error("Failed to create issue:", await issueResponse.text());
+    return;
+  }
+
+  const issueData = await issueResponse.json();
+  console.log("Issue created:", issueData.html_url);
 
   // Step 2: Fetch existing log file or prepare to create it
   const fileRes = await fetch(`https://api.github.com/repos/${GITHUB_USERNAME}/${REPO_NAME}/contents/${FILE_PATH}`, {

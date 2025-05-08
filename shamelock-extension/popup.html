@@ -271,6 +271,30 @@
     .toast-info {
       background: #3498db;
     }
+
+    .settings {
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid #eee;
+    }
+
+    .api-key-section {
+      margin-top: 15px;
+    }
+
+    .api-key-section input {
+      width: 100%;
+      padding: 8px;
+      margin: 5px 0;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+
+    .api-key-section p {
+      font-size: 12px;
+      color: #666;
+      margin: 5px 0;
+    }
   </style>
 </head>
 <body>
@@ -305,7 +329,16 @@
       <button id="start">Start Focus</button>
       <button id="stop">Stop</button>
     </div>
+
+    <div class="settings">
+      <div class="api-key-section">
+        <h3>Gemini API Key</h3>
+        <input type="password" id="apiKey" placeholder="Your Gemini API key (optional)">
+        <p>Don't want to roast on my dime? Add your own key, coward.</p>
+        <button id="saveApiKey">Save Key</button>
+      </div>
+    </div>
   </div>
-  <script type="module" src="popup.js"></script>
+  <script src="popup.js"></script>
 </body>
 </html>
