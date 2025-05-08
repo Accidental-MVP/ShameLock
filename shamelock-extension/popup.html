@@ -16,7 +16,7 @@
 
     body {
       width: 320px;
-      padding: 20px;
+      padding: 16px;
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       background: var(--background);
       color: var(--text);
@@ -24,7 +24,7 @@
 
     .container {
       background: white;
-      padding: 24px;
+      padding: 20px;
       border-radius: 16px;
       box-shadow: 0 4px 20px rgba(0,0,0,0.08);
       width: 100%;
@@ -33,8 +33,8 @@
 
     h1 {
       color: var(--primary);
-      font-size: 28px;
-      margin: 0 0 24px 0;
+      font-size: 24px;
+      margin: 0 0 16px 0;
       text-align: center;
       font-weight: 700;
       letter-spacing: -0.5px;
@@ -42,10 +42,10 @@
 
     .status {
       text-align: center;
-      margin: 16px 0;
-      padding: 12px;
-      border-radius: 12px;
-      font-size: 14px;
+      margin: 12px 0;
+      padding: 8px;
+      border-radius: 8px;
+      font-size: 13px;
       font-weight: 500;
       transition: all 0.3s ease;
     }
@@ -63,35 +63,67 @@
     }
 
     .timer {
-      font-size: 48px;
       text-align: center;
-      margin: 24px 0;
+      margin: 16px 0;
       font-weight: 700;
       color: var(--primary);
       font-variant-numeric: tabular-nums;
       letter-spacing: -1px;
     }
 
+    .timer-ring {
+      position: relative;
+      width: 100px;
+      height: 100px;
+      margin: 0 auto 16px;
+    }
+
+    .timer-ring circle {
+      fill: none;
+      stroke-width: 8;
+      transform: rotate(-90deg);
+      transform-origin: 50% 50%;
+    }
+
+    .timer-ring .background {
+      stroke: var(--background);
+    }
+
+    .timer-ring .progress {
+      stroke: var(--accent);
+      stroke-linecap: round;
+      transition: stroke-dashoffset 0.3s ease;
+    }
+
+    .timer-text {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
     .timer-input {
-      margin: 24px 0;
-      width: 100%;
+      margin: 16px 0;
     }
 
     .timer-presets {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       gap: 8px;
-      margin-bottom: 16px;
-      width: 100%;
+      margin-bottom: 12px;
     }
 
     .timer-preset {
       background: var(--background);
       border: 2px solid transparent;
-      border-radius: 12px;
-      padding: 12px;
+      border-radius: 8px;
+      padding: 8px;
       text-align: center;
       font-weight: 500;
+      font-size: 13px;
       color: var(--text-light);
       cursor: pointer;
       transition: all 0.2s ease;
@@ -110,16 +142,15 @@
 
     .custom-time {
       position: relative;
-      margin-top: 16px;
-      width: 100%;
+      margin-top: 12px;
     }
 
     .custom-time input {
       width: 100%;
-      padding: 12px 16px;
+      padding: 8px 12px;
       border: 2px solid var(--background);
-      border-radius: 12px;
-      font-size: 16px;
+      border-radius: 8px;
+      font-size: 14px;
       color: var(--text);
       transition: all 0.2s ease;
       box-sizing: border-box;
@@ -132,35 +163,33 @@
 
     .custom-time label {
       position: absolute;
-      left: 16px;
-      top: -10px;
+      left: 12px;
+      top: -8px;
       background: white;
-      padding: 0 8px;
-      font-size: 12px;
+      padding: 0 6px;
+      font-size: 11px;
       color: var(--text-light);
     }
 
     .button-group {
       display: flex;
-      gap: 12px;
-      margin-top: 24px;
-      width: 100%;
+      gap: 8px;
+      margin-top: 16px;
     }
 
     button {
       flex: 1;
-      padding: 14px;
+      padding: 10px;
       border: none;
-      border-radius: 12px;
-      font-size: 15px;
+      border-radius: 8px;
+      font-size: 13px;
       font-weight: 600;
       cursor: pointer;
       transition: all 0.2s ease;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
-      box-sizing: border-box;
+      gap: 6px;
     }
 
     #auth {
@@ -198,52 +227,137 @@
       display: none;
     }
 
-    /* Progress ring for timer */
-    .timer-ring {
-      position: relative;
-      width: 120px;
-      height: 120px;
-      margin: 0 auto 24px;
+    /* Collapsible sections */
+    .section {
+      margin-top: 16px;
+      border-top: 1px solid #eee;
     }
 
-    .timer-ring circle {
-      fill: none;
-      stroke-width: 8;
-      transform: rotate(-90deg);
-      transform-origin: 50% 50%;
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 0;
+      cursor: pointer;
+      user-select: none;
     }
 
-    .timer-ring .background {
-      stroke: var(--background);
+    .section-header h3 {
+      margin: 0;
+      font-size: 14px;
+      color: var(--text);
     }
 
-    .timer-ring .progress {
-      stroke: var(--accent);
-      stroke-linecap: round;
-      transition: stroke-dashoffset 0.3s ease;
+    .section-content {
+      display: none;
+      padding: 8px 0;
     }
 
-    .timer-text {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      font-size: 24px;
-      font-weight: 700;
-      color: var(--primary);
+    .section-content.active {
+      display: block;
+    }
+
+    .section-header .toggle-icon {
+      font-size: 12px;
+      color: var(--text-light);
+      transition: transform 0.3s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .section-header.active .toggle-icon {
+      transform: rotate(180deg);
+    }
+
+    .section-header .toggle-icon img {
+      width: 24px;
+      height: 24px;
+      opacity: 0.8;
+    }
+
+    .section-header .toggle-icon:hover img {
+      opacity: 1;
+    }
+
+    /* Settings content */
+    .api-key-section input {
+      width: 100%;
+      padding: 8px;
+      margin: 8px 0;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 13px;
+    }
+
+    .api-key-section p {
+      font-size: 11px;
+      color: #666;
+      margin: 4px 0;
+    }
+
+    .blocked-sites-section .add-site {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .blocked-sites-section .add-site input {
+      flex: 1;
+      padding: 8px;
+      border: 2px solid var(--background);
+      border-radius: 6px;
+      font-size: 13px;
+    }
+
+    .blocked-sites-section .add-site button {
+      padding: 8px 12px;
+      background: var(--accent);
+      color: white;
+      font-size: 12px;
+    }
+
+    .blocked-sites-list {
+      max-height: 150px;
+      overflow-y: auto;
+    }
+
+    .blocked-site-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 10px;
+      background: var(--background);
+      border-radius: 6px;
+      margin-bottom: 6px;
+      font-size: 13px;
+    }
+
+    .blocked-site-item button {
+      padding: 2px 6px;
+      background: var(--danger);
+      color: white;
+      font-size: 10px;
+      border-radius: 4px;
+      min-width: auto;
+      flex: 0 0 auto;
+    }
+
+    .blocked-site-item button:hover {
+      background: #d32f2f;
     }
 
     /* Toast notifications */
     .toast {
       position: fixed;
-      bottom: 20px;
+      bottom: 16px;
       left: 50%;
       transform: translateX(-50%) translateY(100px);
-      padding: 12px 24px;
-      border-radius: 8px;
+      padding: 8px 16px;
+      border-radius: 6px;
       background: #333;
       color: white;
-      font-size: 14px;
+      font-size: 12px;
       opacity: 0;
       transition: all 0.3s ease;
       z-index: 1000;
@@ -255,46 +369,10 @@
       opacity: 1;
     }
 
-    .toast-success {
-      background: #2ecc71;
-    }
-
-    .toast-error {
-      background: #e74c3c;
-    }
-
-    .toast-warning {
-      background: #f1c40f;
-      color: #000;
-    }
-
-    .toast-info {
-      background: #3498db;
-    }
-
-    .settings {
-      margin-top: 20px;
-      padding-top: 20px;
-      border-top: 1px solid #eee;
-    }
-
-    .api-key-section {
-      margin-top: 15px;
-    }
-
-    .api-key-section input {
-      width: 100%;
-      padding: 8px;
-      margin: 5px 0;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-    }
-
-    .api-key-section p {
-      font-size: 12px;
-      color: #666;
-      margin: 5px 0;
-    }
+    .toast-success { background: #2ecc71; }
+    .toast-error { background: #e74c3c; }
+    .toast-warning { background: #f1c40f; color: #000; }
+    .toast-info { background: #3498db; }
   </style>
 </head>
 <body>
@@ -304,9 +382,9 @@
     
     <div id="timer" class="timer hidden">
       <div class="timer-ring">
-        <svg width="120" height="120">
-          <circle class="background" cx="60" cy="60" r="54" />
-          <circle class="progress" cx="60" cy="60" r="54" />
+        <svg width="100" height="100">
+          <circle class="background" cx="50" cy="50" r="46" />
+          <circle class="progress" cx="50" cy="50" r="46" />
         </svg>
         <div class="timer-text">00:00</div>
       </div>
@@ -330,12 +408,31 @@
       <button id="stop">Stop</button>
     </div>
 
-    <div class="settings">
-      <div class="api-key-section">
-        <h3>Gemini API Key</h3>
-        <input type="password" id="apiKey" placeholder="Your Gemini API key (optional)">
-        <p>Don't want to roast on my dime? Add your own key, coward.</p>
-        <button id="saveApiKey">Save Key</button>
+    <div class="section">
+      <div class="section-header" data-section="settings">
+        <h3>Settings</h3>
+        <span class="toggle-icon">
+          <img src="icons/setting.svg" alt="Settings">
+        </span>
+      </div>
+      <div class="section-content" id="settings-content">
+        <div class="api-key-section">
+          <h4>Gemini API Key</h4>
+          <input type="password" id="apiKey" placeholder="Your Gemini API key (optional)">
+          <p>Don't want to roast on my dime? Add your own key, coward.</p>
+          <button id="saveApiKey">Save Key</button>
+        </div>
+
+        <div class="blocked-sites-section">
+          <h4>Blocked Sites</h4>
+          <div class="add-site">
+            <input type="text" id="newSite" placeholder="Enter site to block (e.g., facebook.com)">
+            <button id="addSite">Add</button>
+          </div>
+          <div id="blockedSitesList" class="blocked-sites-list">
+            <!-- Sites will be populated here -->
+          </div>
+        </div>
       </div>
     </div>
   </div>

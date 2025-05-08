@@ -9,6 +9,11 @@ const stopButton = document.getElementById("stop");
 const authButton = document.getElementById("auth");
 const timerPresets = document.querySelectorAll(".timer-preset");
 
+// Blocked Sites Management
+const newSiteInput = document.getElementById("newSite");
+const addSiteButton = document.getElementById("addSite");
+const blockedSitesList = document.getElementById("blockedSitesList");
+
 // Set up the progress ring
 const circumference = 2 * Math.PI * 54; // 2πr where r=54
 progressRing.style.strokeDasharray = `${circumference} ${circumference}`;
@@ -283,4 +288,108 @@ chrome.runtime.sendMessage({ action: "getTimerState" }, (response) => {
     timerInterval = setInterval(updateTimer, 1000);
     updateTimer();
   }
+});
+
+// Load and display blocked sites
+function loadBlockedSites() {
+  chrome.storage.local.get("blockedSites", (result) => {
+    const sites = result.blockedSites || ["youtube.com", "twitter.com", "reddit.com"];
+    displayBlockedSites(sites);
+  });
+}
+
+// Display blocked sites in the UI
+function displayBlockedSites(sites) {
+  blockedSitesList.innerHTML = '';
+  sites.forEach(site => {
+    const siteItem = document.createElement('div');
+    siteItem.className = 'blocked-site-item';
+    siteItem.innerHTML = `
+      <span>${site}</span>
+      <button class="remove-site" data-site="${site}">Remove</button>
+    `;
+    blockedSitesList.appendChild(siteItem);
+  });
+
+  // Add event listeners to remove buttons
+  document.querySelectorAll('.remove-site').forEach(button => {
+    button.addEventListener('click', (e) => {
+      const siteToRemove = e.target.dataset.site;
+      removeBlockedSite(siteToRemove);
+    });
+  });
+}
+
+// Add a new blocked site
+function addBlockedSite(site) {
+  site = site.toLowerCase().trim();
+  
+  // Basic validation
+  if (!site) {
+    showToast('Please enter a valid site', 'error');
+    return;
+  }
+
+  // Remove www. and http(s):// if present
+  site = site.replace(/^https?:\/\//, '').replace(/^www\./, '');
+
+  chrome.storage.local.get("blockedSites", (result) => {
+    const sites = result.blockedSites || ["youtube.com", "twitter.com", "reddit.com"];
+    
+    // Check if site is already blocked
+    if (sites.includes(site)) {
+      showToast('This site is already blocked', 'warning');
+      return;
+    }
+
+    // Add new site
+    sites.push(site);
+    chrome.storage.local.set({ blockedSites: sites }, () => {
+      displayBlockedSites(sites);
+      showToast(`Added ${site} to blocked sites`, 'success');
+      newSiteInput.value = '';
+    });
+  });
+}
+
+// Remove a blocked site
+function removeBlockedSite(site) {
+  chrome.storage.local.get("blockedSites", (result) => {
+    const sites = result.blockedSites || ["youtube.com", "twitter.com", "reddit.com"];
+    const updatedSites = sites.filter(s => s !== site);
+    
+    // Ensure we always have at least the default sites
+    if (updatedSites.length < 3) {
+      showToast('Cannot remove default sites', 'warning');
+      return;
+    }
+
+    chrome.storage.local.set({ blockedSites: updatedSites }, () => {
+      displayBlockedSites(updatedSites);
+      showToast(`Removed ${site} from blocked sites`, 'info');
+    });
+  });
+}
+
+// Event Listeners for blocked sites
+addSiteButton.addEventListener('click', () => {
+  addBlockedSite(newSiteInput.value);
+});
+
+newSiteInput.addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') {
+    addBlockedSite(newSiteInput.value);
+  }
+});
+
+// Load blocked sites when popup opens
+loadBlockedSites();
+
+// Collapsible sections
+document.querySelectorAll('.section-header').forEach(header => {
+  header.addEventListener('click', () => {
+    const content = document.getElementById(`${header.dataset.section}-content`);
+    header.classList.toggle('active');
+    content.classList.toggle('active');
+  });
 });
