@@ -267,33 +267,63 @@ async function injectShameMessage(tabId) {
     await chrome.scripting.executeScript({
       target: { tabId },
       func: () => {
+        // Remove any existing shame message
+        const existingShame = document.getElementById('shamelock-shame');
+        if (existingShame) {
+          existingShame.remove();
+        }
+
         // Create and inject the shame message
         const shameDiv = document.createElement('div');
+        shameDiv.id = 'shamelock-shame';
         shameDiv.style.cssText = `
           position: fixed;
           top: 0;
           left: 0;
           width: 100vw;
           height: 100vh;
-          background: black;
-          color: red;
+          background: rgba(0, 0, 0, 0.95);
+          color: #ff4444;
           display: flex;
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          font-family: sans-serif;
-          font-size: 24px;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          font-size: 32px;
           text-align: center;
-          z-index: 999999;
+          z-index: 2147483647;
+          padding: 20px;
+          box-sizing: border-box;
+          animation: fadeIn 0.3s ease-out;
         `;
+
+        // Add keyframes for animation
+        const style = document.createElement('style');
+        style.textContent = `
+          @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+          }
+        `;
+        document.head.appendChild(style);
+
         shameDiv.innerHTML = `
-          <h1 style="margin-bottom: 20px;">🚨 STOP WASTING TIME 🚨</h1>
-          <p>This site is blocked during your focus session.</p>
+          <h1 style="margin-bottom: 20px; font-size: 48px; text-shadow: 0 0 10px rgba(255, 68, 68, 0.5);">🚨 STOP WASTING TIME 🚨</h1>
+          <p style="font-size: 24px; margin-bottom: 30px; color: #fff;">This site is blocked during your focus session.</p>
+          <p style="font-size: 18px; color: #888;">Your shame has been logged to GitHub.</p>
         `;
+
+        // Prevent scrolling and interaction with the page
+        document.body.style.overflow = 'hidden';
+        document.body.style.position = 'fixed';
+        document.body.style.width = '100%';
+        document.body.style.height = '100%';
+
         document.body.appendChild(shameDiv);
 
         // Play alarm sound
-        const audio = new Audio("https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg");
+        const audio = new Audio(chrome.runtime.getURL('sounds/alarm.mp3'));
+        audio.volume = 0.5;
         audio.play().catch(e => console.log("Could not play audio:", e));
       }
     });

@@ -81,8 +81,12 @@ function updateProgressRing(timeLeft, totalDuration) {
 }
 
 function updateTimerUI(timeLeft, totalDuration) {
+  if (!timerText || !progressRing) return;
+  
   timerText.textContent = formatTime(timeLeft);
-  updateProgressRing(timeLeft, totalDuration);
+  const progress = timeLeft / (totalDuration * 1000);
+  const offset = circumference * (1 - progress);
+  progressRing.style.strokeDashoffset = offset;
 }
 
 // GitHub Authentication
@@ -358,12 +362,7 @@ function removeBlockedSite(site) {
     const sites = result.blockedSites || ["youtube.com", "twitter.com", "reddit.com"];
     const updatedSites = sites.filter(s => s !== site);
     
-    // Ensure we always have at least the default sites
-    if (updatedSites.length < 3) {
-      showToast('Cannot remove default sites', 'warning');
-      return;
-    }
-
+    // Allow removing any site, including defaults
     chrome.storage.local.set({ blockedSites: updatedSites }, () => {
       displayBlockedSites(updatedSites);
       showToast(`Removed ${site} from blocked sites`, 'info');
