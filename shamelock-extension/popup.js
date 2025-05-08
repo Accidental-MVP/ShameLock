@@ -373,6 +373,12 @@ function addBlockedSite(site) {
       displayBlockedSites(sites);
       showToast(`Added ${site} to blocked sites`, 'success');
       newSiteInput.value = '';
+      
+      // Notify background script about the change
+      chrome.runtime.sendMessage({ 
+        action: "updateBlockedSites", 
+        sites: sites 
+      });
     });
   });
 }
@@ -383,10 +389,15 @@ function removeBlockedSite(site) {
     const sites = result.blockedSites || ["youtube.com", "twitter.com", "reddit.com"];
     const updatedSites = sites.filter(s => s !== site);
     
-    // Allow removing any site, including defaults
     chrome.storage.local.set({ blockedSites: updatedSites }, () => {
       displayBlockedSites(updatedSites);
       showToast(`Removed ${site} from blocked sites`, 'info');
+      
+      // Notify background script about the change
+      chrome.runtime.sendMessage({ 
+        action: "updateBlockedSites", 
+        sites: updatedSites 
+      });
     });
   });
 }

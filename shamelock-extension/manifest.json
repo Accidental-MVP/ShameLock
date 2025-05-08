@@ -52,7 +52,7 @@
     "type": "module"
   },
   "web_accessible_resources": [{
-    "resources": ["icons/*"],
+    "resources": ["icons/*", "README_TEMPLATE.md"],
     "matches": ["<all_urls>"]
   }],
   "content_security_policy": {
