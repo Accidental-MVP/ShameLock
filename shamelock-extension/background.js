@@ -296,9 +296,10 @@ async function checkTab(url) {
         }
       }
 
-      // Pop browser notification
+      // Pop browser notification with skull lock icon
       chrome.notifications.create({
         type: "basic",
+        iconUrl: chrome.runtime.getURL("icons/skull_lock_128.png"),
         title: "👿 Shame Detected",
         message: `You opened ${siteName}. Logging this disaster.`,
         priority: 2
