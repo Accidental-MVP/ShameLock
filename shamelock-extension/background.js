@@ -63,7 +63,7 @@ async function logFailure(site, time) {
       },
       body: JSON.stringify({
         message: "chore: initialize failed_logs directory",
-        content: btoa("Directory for daily shame logs")
+        content: btoa(unescape(encodeURIComponent("Directory for daily shame logs")))
       })
     });
   } else if (repoRes.status !== 200) {
@@ -98,7 +98,7 @@ async function logFailure(site, time) {
   if (fileRes.status === 200) {
     const fileData = await fileRes.json();
     try {
-      content = atob(fileData.content);
+      content = decodeURIComponent(escape(atob(fileData.content)));
       sha = fileData.sha;
     } catch (err) {
       console.error("Failed to decode existing log file:", err);
