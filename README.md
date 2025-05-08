@@ -94,7 +94,7 @@ git clone https://github.com/accidental-mvp/shamelock
    - Go to `chrome://extensions`
    - Enable "Developer Mode"
    - Click "Load Unpacked"
-   - Select the `shamelock` folder
+   - Select the `shamelock-extension` folder
 
 3. Add your Gemini API key (or not — it’ll use the fallback if you're just here to vibe)
 
