@@ -97,12 +97,33 @@ authButton.addEventListener("click", () => {
     "width=500,height=600"
   );
 
-  window.addEventListener("message", (event) => {
+  window.addEventListener("message", async (event) => {
     if (event.data?.token) {
-      chrome.storage.local.set({ githubToken: event.data.token }, () => {
+      // First save the token
+      await chrome.storage.local.set({ githubToken: event.data.token });
+      
+      // Then fetch the username using the token
+      try {
+        const response = await fetch("https://api.github.com/user", {
+          headers: {
+            Authorization: `token ${event.data.token}`,
+            Accept: "application/vnd.github.v3+json"
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch GitHub user');
+        }
+        
+        const userData = await response.json();
+        await chrome.storage.local.set({ githubUsername: userData.login });
+        
         updateConnectionStatus(true);
         showToast('Successfully connected to GitHub!', 'success');
-      });
+      } catch (error) {
+        console.error('Error fetching GitHub username:', error);
+        showToast('Failed to connect to GitHub. Please try again.', 'error');
+      }
     }
   });
 });
